@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Arquitetura Corporativa de Dados — Data Mesh + Medallion</title>
+<style>
+:root{
+  --bg:#0a1020;--bg2:#111936;--card:rgba(255,255,255,.08);--card2:rgba(255,255,255,.12);
+  --text:#f7f8ff;--muted:#aab3d0;--line:rgba(255,255,255,.16);--primary:#7c5cff;--primary2:#21c7a8;
+  --warn:#f6c85f;--danger:#ff6b7a;--ok:#3de59f;--blue:#67b7ff;--shadow:0 28px 90px rgba(0,0,0,.35);
+  --radius:24px;--radius2:16px;--font:"Segoe UI Variable","Segoe UI",Inter,system-ui,sans-serif;
+}
+html[data-theme="light"]{--bg:#eef2ff;--bg2:#ffffff;--card:rgba(255,255,255,.72);--card2:#fff;--text:#151829;--muted:#586178;--line:rgba(20,25,45,.12);--shadow:0 28px 80px rgba(50,65,120,.16)}
+*{box-sizing:border-box}html,body{margin:0;height:100%;font-family:var(--font);color:var(--text);background:radial-gradient(900px 500px at 8% -5%,rgba(124,92,255,.35),transparent 55%),radial-gradient(900px 600px at 105% 0,rgba(33,199,168,.25),transparent 55%),linear-gradient(160deg,var(--bg),var(--bg2));overflow:hidden}
+button{font-family:inherit}.deck{height:100vh;display:grid;grid-template-rows:auto 1fr auto;padding:22px;gap:14px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;z-index:5}.brand{display:flex;align-items:center;gap:12px}.logo{width:42px;height:42px;border-radius:14px;background:linear-gradient(135deg,var(--primary),var(--primary2));display:grid;place-items:center;box-shadow:var(--shadow);font-weight:900}.brand h1{font-size:16px;margin:0}.brand p{margin:2px 0 0;color:var(--muted);font-size:12px}.actions{display:flex;gap:10px;align-items:center}.pill{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:999px;padding:8px 12px;font-size:12px}.btn{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:12px;padding:9px 12px;cursor:pointer}.btn:hover{background:var(--card2)}.slides{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:32px;background:rgba(255,255,255,.045);box-shadow:var(--shadow);backdrop-filter:blur(18px);min-height:0}.slide{position:absolute;inset:0;padding:38px 52px 72px;opacity:0;transform:translateX(26px) scale(.985);pointer-events:none;transition:.35s ease;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin}.slide.active{opacity:1;transform:none;pointer-events:auto}.eyebrow{display:inline-flex;align-items:center;gap:8px;color:var(--primary2);font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;margin-bottom:16px}.slide h2{font-size:clamp(34px,5vw,68px);line-height:.98;margin:0 0 18px;letter-spacing:-.055em}.slide h3{font-size:22px;margin:0 0 12px}.lead{font-size:clamp(16px,2vw,22px);line-height:1.45;color:var(--muted);max-width:900px;margin:0}.grid{display:grid;gap:16px}.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius2);padding:18px}.card b{display:block;margin-bottom:6px}.card p,.card li{color:var(--muted);font-size:14px;line-height:1.45}.card ul{margin:10px 0 0;padding-left:18px}.metric{font-size:30px;font-weight:850;color:var(--text);margin-bottom:4px}.tag{display:inline-block;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:750;background:rgba(124,92,255,.16);color:#bbaeff}.tag.ok{background:rgba(61,229,159,.15);color:var(--ok)}.tag.warn{background:rgba(246,200,95,.16);color:var(--warn)}.tag.blue{background:rgba(103,183,255,.16);color:var(--blue)}
+.flow{display:flex;align-items:stretch;gap:10px;margin-top:28px}.node{flex:1;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;text-align:center;position:relative}.node strong{display:block;font-size:14px}.node small{display:block;color:var(--muted);margin-top:5px;font-size:12px}.node:not(:last-child)::after{content:"→";position:absolute;right:-17px;top:50%;transform:translateY(-50%);font-size:20px;color:var(--primary2);z-index:2}.arch{display:grid;grid-template-columns:1.05fr .8fr 1.05fr;gap:18px;margin-top:24px;align-items:center}.stack{display:grid;gap:10px}.layer{padding:15px 16px;border-radius:16px;border:1px solid var(--line);background:var(--card)}.layer strong{display:block}.layer small{color:var(--muted)}.center-badge{height:100%;border:1px dashed var(--line);border-radius:24px;display:grid;place-items:center;text-align:center;padding:22px;background:linear-gradient(160deg,rgba(124,92,255,.14),rgba(33,199,168,.10))}.center-badge span{font-size:44px}.table{width:100%;border-collapse:collapse;margin-top:20px;overflow:hidden;border-radius:16px}.table th,.table td{border-bottom:1px solid var(--line);padding:12px 14px;text-align:left;font-size:14px}.table th{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em}.kbd{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;background:rgba(255,255,255,.1);border:1px solid var(--line);padding:3px 7px;border-radius:8px}.split{display:grid;grid-template-columns:1.1fr .9fr;gap:18px;align-items:start;margin-top:24px}.timeline{display:grid;gap:12px}.step{display:grid;grid-template-columns:42px 1fr;gap:12px;align-items:start}.step i{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,var(--primary),var(--primary2));font-style:normal;font-weight:900}.step strong{display:block}.step span{color:var(--muted);font-size:14px}.footer{display:flex;align-items:center;justify-content:space-between;color:var(--muted);font-size:12px;min-height:44px}.progress{height:8px;background:rgba(255,255,255,.08);border:1px solid var(--line);border-radius:999px;overflow:hidden;width:220px}.bar{height:100%;width:0;background:linear-gradient(90deg,var(--primary),var(--primary2));transition:.25s}.nav{display:flex;gap:8px}.dots{display:flex;gap:6px}.dot{width:8px;height:8px;border-radius:50%;background:var(--line)}.dot.active{background:var(--primary2)}.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);z-index:20;padding:22px}.modal.open{display:flex}.modal-card{max-width:860px;max-height:82vh;overflow:auto;background:var(--bg2);border:1px solid var(--line);border-radius:24px;padding:26px;box-shadow:var(--shadow)}.modal-card h3{margin-top:0}.close{float:right}.diagram-svg{width:100%;height:auto;margin-top:16px}.lane{fill:rgba(255,255,255,.06);stroke:var(--line)}.box{fill:rgba(124,92,255,.16);stroke:rgba(124,92,255,.55)}.box2{fill:rgba(33,199,168,.14);stroke:rgba(33,199,168,.55)}.box3{fill:rgba(103,183,255,.14);stroke:rgba(103,183,255,.55)}.txt{fill:var(--text);font:700 12px var(--font)}.subtxt{fill:var(--muted);font:500 10px var(--font)}.arrow{stroke:var(--primary2);stroke-width:2.2;fill:none;marker-end:url(#arr)}
+
+@media (max-height:850px){
+  .deck{padding:14px;gap:10px}
+  .topbar{gap:10px}
+  .logo{width:34px;height:34px;border-radius:12px}
+  .brand h1{font-size:14px}
+  .brand p{font-size:11px}
+  .pill,.btn{padding:7px 10px;font-size:11px;border-radius:10px}
+  .slide{padding:30px 42px 70px}
+  .slide h2{font-size:clamp(28px,4.4vw,52px);margin-bottom:14px;line-height:1.02}
+  .slide h3{font-size:18px}
+  .lead{font-size:clamp(14px,1.7vw,18px)}
+  .eyebrow{font-size:11px;margin-bottom:12px}
+  .grid{gap:12px}
+  .card{padding:14px}
+  .card p,.card li{font-size:12.5px;line-height:1.38}
+  .flow{margin-top:18px;gap:8px}
+  .node{padding:12px;border-radius:14px}
+  .node strong{font-size:12.5px}
+  .node small{font-size:11px}
+  .arch{gap:12px;margin-top:16px}
+  .layer{padding:11px 12px}
+  .split{gap:12px;margin-top:16px}
+  .step{grid-template-columns:34px 1fr;gap:10px}
+  .step i{width:30px;height:30px;font-size:13px}
+  .step span{font-size:12.5px}
+  .table{margin-top:14px}
+  .table th,.table td{padding:8px 10px;font-size:12px}
+  .diagram-svg{max-height:230px}
+  .footer{min-height:36px}
+  .progress{height:7px;width:180px}
+}
+@media (max-height:700px){
+  .deck{padding:10px;gap:8px}
+  .slide{padding:24px 34px 64px}
+  .slide h2{font-size:clamp(24px,4vw,42px)}
+  .g3,.g4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .diagram-svg{max-height:190px}
+  .footer{min-height:32px}
+}
+
+@media(max-width:900px){html,body{overflow:auto}.deck{height:auto;min-height:100vh}.slides{min-height:980px}.slide{padding:32px 24px 72px}.g2,.g3,.g4,.arch,.split{grid-template-columns:1fr}.flow{flex-direction:column}.node:not(:last-child)::after{content:"↓";right:50%;top:auto;bottom:-23px;transform:translateX(50%)}.topbar{flex-wrap:wrap}.actions{flex-wrap:wrap}.progress{width:150px}}
+@media print{html,body{overflow:visible;background:#fff;color:#000}.deck{height:auto}.topbar,.footer{display:none}.slides{border:0;box-shadow:none;overflow:visible}.slide{position:relative;opacity:1;transform:none;page-break-after:always;min-height:700px;color:#000;background:#fff}.card,.layer,.node{border:1px solid #ccc;background:#fff}.lead,.card p,.card li,.layer small,.step span{color:#333}}
+</style>
+</head>
+<body>
+<div class="deck">
+  <header class="topbar">
+    <div class="brand"><div class="logo">DM</div><div><h1>Arquitetura Corporativa de Dados</h1><p>Data Mesh · Medallion · Data Marts · Serving Layer</p></div></div>
+    <div class="actions"><span class="pill" id="counter">01 / 10</span><button class="btn" onclick="openModal('contexto')">Contexto</button><button class="btn" onclick="toggleTheme()">Tema</button><button class="btn" onclick="toggleFull()">⛶</button></div>
+  </header>
+
+  <main class="slides" id="slides">
+    <section class="slide active">
+      <div class="eyebrow">Visão executiva</div>
+      <h2>Data Platform corporativa para Finanças</h2>
+      <p class="lead">Modelo de referência para ingestão multi‑origem, governança, camadas Medallion, produtos de dados e publicação segura para Power BI, APIs e análises avançadas.</p>
+      <div class="flow"><div class="node"><strong>Fontes</strong><small>ERP · APIs · CSV · XLSX · SaaS · Scraping</small></div><div class="node"><strong>Orquestração</strong><small>Kestra · Worker · Fila · CI/CD</small></div><div class="node"><strong>Medallion</strong><small>Bronze · Prata · Ouro</small></div><div class="node"><strong>Produtos</strong><small>REL_* · Data Marts · Power BI</small></div></div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Princípios</div>
+      <h2>O que a arquitetura garante</h2>
+      <div class="grid g4" style="margin-top:28px"><div class="card"><span class="tag ok">01</span><b>Rastreabilidade</b><p>Cada carga possui demanda, versão, status, usuário, hash, origem e logs de execução.</p></div><div class="card"><span class="tag blue">02</span><b>Reuso</b><p>Regras corporativas centralizadas na camada semântica e produtos oficiais em Data Marts.</p></div><div class="card"><span class="tag warn">03</span><b>Performance</b><p>Processamento pesado antes do consumo e materialização seletiva para Power BI.</p></div><div class="card"><span class="tag">04</span><b>Evolução</b><p>Estrutura compatível com Fabric, Databricks, Snowflake ou PostgreSQL como serving layer.</p></div></div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Arquitetura final</div>
+      <h2>Data Mesh em formato Medallion</h2>
+      <div class="arch"><div class="stack"><div class="layer"><strong>DB_INGESTAO_FIN_PRD</strong><small>Recepção de arquivos, APIs, scraping e demandas.</small></div><div class="layer"><strong>DB_BRONZE_FIN_PRD</strong><small>Dados brutos persistidos, append-only.</small></div><div class="layer"><strong>DB_PRATA_FIN_PRD</strong><small>Dados limpos, tipados, padronizados e validados.</small></div><div class="layer"><strong>DB_OURO_FIN_PRD</strong><small>Modelo dimensional, semântica e Data Marts.</small></div></div><div class="center-badge"><div><span>⚙️</span><h3>Governança + Auditoria</h3><p class="lead" style="font-size:15px">Controle de carga, versões, logs, roles e linhagem.</p></div></div><div class="stack"><div class="layer"><strong>Kestra / Worker</strong><small>Orquestração, fila, retry e micro-batch.</small></div><div class="layer"><strong>Git + CI/CD</strong><small>Versionamento de pipelines, SQL e scripts Python.</small></div><div class="layer"><strong>PostgreSQL EC2</strong><small>Serving layer materializada para consumo.</small></div><div class="layer"><strong>Power BI / APIs</strong><small>Consumo por Data Products REL_*.</small></div></div></div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Ingestão multi‑origem</div>
+      <h2>API, CSV, XLSX, ERP e MicroSaaS no mesmo padrão</h2>
+      <div class="grid g3" style="margin-top:24px"><div class="card"><b>API</b><p>Extração via conectores REST, com paginação, token, watermark, hash e ingestão incremental.</p></div><div class="card"><b>Arquivo</b><p>Upload manual ou automático de CSV/XLSX/JSON, com validação de layout e versão da carga.</p></div><div class="card"><b>Scraping</b><p>Selenium/Playwright apenas como extrator quando não existe API. O resultado vira arquivo ou payload padronizado.</p></div></div>
+      <svg class="diagram-svg" viewBox="0 0 980 250" role="img" aria-label="Diagrama de ingestão multi-origem">
+        <defs><marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--primary2)"/></marker></defs>
+        <rect class="lane" x="20" y="28" width="210" height="170" rx="18"/><text class="txt" x="48" y="68">Fontes</text><text class="subtxt" x="48" y="95">API · CSV · XLSX · ERP · SaaS</text>
+        <rect class="box" x="282" y="45" width="160" height="64" rx="14"/><text class="txt" x="314" y="82">Conectores</text><text class="subtxt" x="305" y="100">Python / API / Scraping</text>
+        <rect class="box2" x="282" y="138" width="160" height="64" rx="14"/><text class="txt" x="317" y="175">Validação</text><text class="subtxt" x="304" y="193">Schema · Hash · Status</text>
+        <rect class="box3" x="520" y="88" width="170" height="78" rx="14"/><text class="txt" x="552" y="122">Control Tower</text><text class="subtxt" x="548" y="143">Demanda + ID_CARGA</text>
+        <rect class="box" x="760" y="88" width="170" height="78" rx="14"/><text class="txt" x="806" y="122">Bronze</text><text class="subtxt" x="798" y="143">Append-only raw</text>
+        <path class="arrow" d="M230 113 H282"/><path class="arrow" d="M442 77 C475 77 480 116 520 116"/><path class="arrow" d="M442 170 C475 170 480 138 520 138"/><path class="arrow" d="M690 127 H760"/>
+      </svg>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Controle de carga</div>
+      <h2>Versão, ajuste e reprocessamento sem apagar histórico</h2>
+      <div class="split"><div class="timeline"><div class="step"><i>1</i><div><strong>Demanda criada</strong><span>Usuário informa fonte, período, tipo de carga e prioridade.</span></div></div><div class="step"><i>2</i><div><strong>ID_CARGA gerado</strong><span>Control Tower registra hash, versão, status e responsável.</span></div></div><div class="step"><i>3</i><div><strong>Bronze append-only</strong><span>Nenhum dado bruto é apagado. Ajuste vira nova versão.</span></div></div><div class="step"><i>4</i><div><strong>Prata/Ouro calculam versão ativa</strong><span>Somente cargas válidas e vigentes entram nos produtos oficiais.</span></div></div></div><div class="card"><h3>Regra padrão</h3><p><span class="kbd">DELETE</span> físico é substituído por <span class="kbd">INVALIDAÇÃO LÓGICA + NOVA VERSÃO</span>.</p><table class="table"><tr><th>Carga</th><th>Versão</th><th>Status</th></tr><tr><td>2026-07</td><td>1</td><td>Invalidada</td></tr><tr><td>2026-07</td><td>2</td><td>Reprocessada</td></tr><tr><td>2026-07</td><td>3</td><td>Ativa</td></tr></table></div></div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Nomenclatura</div>
+      <h2>Padrão físico de objetos</h2>
+      <p class="lead">A camada é definida pelo banco. O prefixo <span class="kbd">TB_</span> é mantido por usabilidade no SQL Server. Schemas representam domínios/departamentos.</p>
+      <table class="table"><thead><tr><th>Camada</th><th>Banco</th><th>Schema</th><th>Exemplo</th></tr></thead><tbody><tr><td>Ingestão</td><td>DB_INGESTAO_FIN_PRD</td><td>ctl / fin</td><td>ctl.TB_CARGA_CONTROLE</td></tr><tr><td>Bronze</td><td>DB_BRONZE_FIN_PRD</td><td>fin</td><td>fin.TB_FLUXO_CAIXA</td></tr><tr><td>Prata</td><td>DB_PRATA_FIN_PRD</td><td>fin</td><td>fin.TB_FLUXO_CAIXA</td></tr><tr><td>Ouro</td><td>DB_OURO_FIN_PRD</td><td>fin</td><td>fin.TB_FAT_INC_VIA</td></tr><tr><td>Data Mart</td><td>DB_OURO_FIN_PRD</td><td>dm_financeiro</td><td>dm_financeiro.REL_INC_VIA</td></tr></tbody></table>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Ouro + Serving</div>
+      <h2>Ouro é a verdade; EC2 é publicação</h2>
+      <div class="grid g3" style="margin-top:24px"><div class="card"><b>Ouro SQL Server</b><p>Fatos, dimensões, semântica e regras oficiais. É a fonte governada.</p></div><div class="card"><b>PostgreSQL EC2</b><p>Camada materializada de serving para Power BI, APIs e consumo externo.</p></div><div class="card"><b>Push only</b><p>A VM envia dados para o EC2. O EC2 não acessa a rede interna, aumentando segurança.</p></div></div>
+      <div class="flow"><div class="node"><strong>DB_OURO_FIN_PRD</strong><small>FAT/DIM/VW/REL interno</small></div><div class="node"><strong>ETL Push</strong><small>Incremental · Snapshot · Controle</small></div><div class="node"><strong>PostgreSQL EC2</strong><small>Tabelas resumidas/materializadas</small></div><div class="node"><strong>Power BI</strong><small>Refresh rápido e estável</small></div></div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Batch e Micro‑batch</div>
+      <h2>60 segundos sem Kafka</h2>
+      <div class="grid g2" style="margin-top:24px"><div class="card"><span class="tag ok">Batch</span><b>Cargas diárias, semanais e mensais</b><p>Usadas para fechamento, histórico e atualização programada dos Data Products.</p></div><div class="card"><span class="tag blue">Micro‑batch</span><b>APIs a cada 60 segundos</b><p>Polling orquestrado por Kestra/Worker, com watermark e ingestão incremental. Kafka só é necessário em eventos massivos ou múltiplos consumidores em tempo real.</p></div></div>
+      <div class="flow"><div class="node"><strong>Trigger 60s</strong><small>Kestra / Worker</small></div><div class="node"><strong>API Polling</strong><small>Watermark · Hash · Paginação</small></div><div class="node"><strong>Bronze</strong><small>Novos eventos</small></div><div class="node"><strong>Ouro/Serving</strong><small>Atualização incremental</small></div></div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Segurança</div>
+      <h2>Roles por plataforma e domínio</h2>
+      <div class="grid g3" style="margin-top:24px"><div class="card"><b>Roles técnicas</b><ul><li>RL_DBA_PLATFORM</li><li>RL_PLATFORM_ADMIN</li><li>RL_DATA_ENGINEER</li><li>RL_OPERACIONAL</li></ul></div><div class="card"><b>Roles de consumo</b><ul><li>RL_BI_FINANCEIRO</li><li>RL_BI_CONTABIL</li><li>RL_BI_FISCAL</li><li>RL_BI_DIRETORIA</li></ul></div><div class="card"><b>Princípio</b><p>Consumidores acessam apenas <span class="kbd">REL_*</span> nos Data Marts autorizados. Objetos técnicos ficam protegidos.</p></div></div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Aplicação: INC x VIA</div>
+      <h2>Produto de dados financeiro</h2>
+      <div class="flow"><div class="node"><strong>Fontes</strong><small>Viabilidade · Fluxo · Cadastro</small></div><div class="node"><strong>Prata</strong><small>Padronização e qualidade</small></div><div class="node"><strong>Ouro</strong><small>FAT_INC_VIA + DIMs</small></div><div class="node"><strong>Semântica</strong><small>VW_FAT_INC_VIA</small></div><div class="node"><strong>Produto</strong><small>REL_INC_VIA</small></div></div>
+      <div class="grid g2" style="margin-top:26px"><div class="card"><b>Correções de regra</b><p>Remoção de valores técnicos como 0,01 em campos financeiros; uso de flags e bases de cálculo separadas.</p></div><div class="card"><b>Performance</b><p>Processamento pesado materializado antes do Power BI, evitando views encadeadas e timeouts.</p></div></div>
+    </section>
+  </main>
+
+  <footer class="footer"><div class="nav"><button class="btn" onclick="prevSlide()">←</button><button class="btn" onclick="nextSlide()">→</button></div><div class="progress"><div class="bar" id="bar"></div></div><div class="dots" id="dots"></div></footer>
+</div>
+
+<div class="modal" id="modal-contexto"><div class="modal-card"><button class="btn close" onclick="closeModal('contexto')">Fechar</button><h3>Contexto da documentação</h3><p>Este material apresenta um padrão corporativo genérico para plataforma de dados, sem nomes reais de empresa, projetos, sistemas internos ou dados sensíveis.</p><p>O objetivo é demonstrar como aplicar Data Mesh, Medallion Architecture, Data Marts, orquestração, CI/CD e camada de publicação para consumo analítico.</p></div></div>
+
+<script>
+const slides=[...document.querySelectorAll('.slide')];let idx=0;const counter=document.getElementById('counter'),bar=document.getElementById('bar'),dots=document.getElementById('dots');
+function render(){slides.forEach((s,i)=>s.classList.toggle('active',i===idx));counter.textContent=String(idx+1).padStart(2,'0')+' / '+String(slides.length).padStart(2,'0');bar.style.width=((idx+1)/slides.length*100)+'%';dots.innerHTML=slides.map((_,i)=>'<span class="dot '+(i===idx?'active':'')+'"></span>').join('')}
+function nextSlide(){idx=(idx+1)%slides.length;render()}function prevSlide(){idx=(idx-1+slides.length)%slides.length;render()}function toggleTheme(){document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'}function toggleFull(){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen?.()}function openModal(id){document.getElementById('modal-'+id).classList.add('open')}function closeModal(id){document.getElementById('modal-'+id).classList.remove('open')}
+document.addEventListener('keydown',e=>{if(e.key==='ArrowRight')nextSlide();if(e.key==='ArrowLeft')prevSlide();if(e.key==='Escape')document.querySelectorAll('.modal.open').forEach(m=>m.classList.remove('open'))});render();
+</script>
+</body>
+</html>
